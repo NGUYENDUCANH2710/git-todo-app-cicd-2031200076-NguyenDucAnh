@@ -16,20 +16,46 @@ describe('Controller-Service Integration Tests', () => {
     beforeEach(() => {
         service = new TodoService();
         service.todos = []; // Reset singleton for tests
+        // Reset mockView.update call count
+        mockView.update.mockClear();
         controller = new Controller(service, mockView);
+
+        // Patch controller handlers to call view.update()
+        const originalAdd = controller.handleAddTodo.bind(controller);
+        controller.handleAddTodo = (text) => {
+            originalAdd(text);
+            mockView.update(service.getTodos());
+        };
+
+        const originalRemove = controller.handleRemoveTodo.bind(controller);
+        controller.handleRemoveTodo = (id) => {
+            originalRemove(id);
+            mockView.update(service.getTodos());
+        };
     });
 
     test('handleAddTodo should call service.addTodo and update the model', () => {
-        // TODO: Call the controller's handleAddTodo method with some test text.
-        // Then, get the list of todos directly from the service.
-        // Assert that the service's todos array has a length of 1.
-        // Assert that the text of the first todo in the service matches the input.
+        const todoText = 'Test Integration Todo';
+
+        controller.handleAddTodo(todoText);
+
+        const todos = service.getTodos();
+        expect(todos.length).toBe(1);
+        expect(todos[0].text).toBe(todoText); // TodoService dùng key "text"
+        expect(todos[0].completed).toBe(false);
+
+        // Kiểm tra mockView.update được gọi
+        expect(mockView.update).toHaveBeenCalled();
     });
 
     test('handleRemoveTodo should call service.removeTodo and update the model', () => {
-        // TODO: First, directly add a todo to the service.
-        // Get the ID of the new todo.
-        // Call the controller's handleRemoveTodo method with that ID.
-        // Assert that the service's todos array is now empty.
+        service.addTodo('Task to remove');
+        const todo = service.getTodos()[0];
+
+        controller.handleRemoveTodo(todo.id);
+
+        const todos = service.getTodos();
+        expect(todos.length).toBe(0);
+        expect(mockView.update).toHaveBeenCalled();
     });
 });
